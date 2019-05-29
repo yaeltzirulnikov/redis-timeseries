@@ -294,12 +294,23 @@ RedisModuleDict * QueryIndex(RedisModuleCtx *ctx, QueryPredicate *index_predicat
     size_t currentKeyLen;
     while((currentKey = RedisModule_DictNextC(iter, &currentKeyLen, NULL)) != NULL) {
         for (int i=1; i < predicate_count; i++) {
+            RedisModule_Log(ctx, "warning", "in loop %d\n", i);
+            RedisModuleDict* currPredicateDict = QueryIndexPredicate2(ctx, &index_predicate[i], NULL, 0);
+            int size = RedisModule_DictSize(currPredicateDict);
+            RedisModule_Log(ctx, "warning", "size %d currentKey %s\n", size, currentKey);
+
             int doesNotExist = 0;
-            RedisModule_DictGetC(QueryIndexPredicate2(ctx, &index_predicate[i], NULL, 0), currentKey, currentKeyLen, &doesNotExist);
-            if (doesNotExist == 1) {
+            RedisModule_DictGetC(currPredicateDict, currentKey, currentKeyLen, &doesNotExist);
+            RedisModule_Log(ctx, "warning", "doesNotExist %d\n", doesNotExist);
+
+            if (doesNotExist == 0) {
+                RedisModule_Log(ctx, "warning", "continue\n");
                 continue;
             }
+            RedisModule_Log(ctx, "warning", "delting\n");
+
             RedisModule_DictDelC(result, currentKey, currentKeyLen, NULL);
+
             RedisModule_DictIteratorReseekC(iter, ">", currentKey, currentKeyLen);
             break;
         }
