@@ -293,13 +293,12 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     char *arg;
     int i;
     time_t start_time = GetTimeStamp();
-    //RedisModule_Log(ctx, "warning", "bla1 starting time %ld\n", start_time);
-    /* for (i = 0; i < argc; i++)
+    RedisModule_Log(ctx, "warning", "bla1 starting time %ld\n", start_time);
+    for (i = 0; i < argc; i++)
     {
         arg = RedisModule_StringPtrLen(argv[i], &len);
         RedisModule_Log(ctx, "warning", "dd %d %s", i, arg);
     }
-     */
 
 
     if (argc < 4)
