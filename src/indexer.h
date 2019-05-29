@@ -29,7 +29,7 @@ typedef struct QueryPredicate {
     PredicateType type;
     Label label;
 } QueryPredicate;
-
+uint64_t GetTimeStamp();
 void IndexInit();
 void IndexMetric(RedisModuleCtx *ctx, RedisModuleString *ts_key, Label *labels, size_t labels_count);
 void RemoveIndexedMetric(RedisModuleCtx *ctx, RedisModuleString *ts_key, Label *labels, size_t labels_count);

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <rmutil/alloc.h>
 #include <rmutil/vector.h>
+#include <sys/time.h>
 
 #include "consts.h"
 #include "indexer.h"
@@ -147,34 +148,64 @@ int _difference(RedisModuleCtx *ctx, RedisModuleDict *left, RedisModuleDict *rig
     RedisModule_DictIteratorStop(iter);
     return 0;
 }
-
-RedisModuleDict * QueryIndexPredicate(RedisModuleCtx *ctx, QueryPredicate *predicate, RedisModuleDict *prevResults) {
+uint64_t GetTimeStamp() {
+    struct timeval tv;
+    gettimeofday(&tv,NULL);
+    return tv.tv_sec*(uint64_t)1000000+tv.tv_usec;
+}
+RedisModuleDict * QueryIndexPredicate(RedisModuleCtx *ctx, QueryPredicate *predicate, RedisModuleDict *prevResults,
+        int createResultDict) {
     RedisModuleDict *localResult = RedisModule_CreateDict(ctx);
     RedisModuleDict *currentLeaf;
     RedisModuleString *index_key;
     size_t _s;
 
+    time_t start_time = GetTimeStamp();
+    //RedisModule_Log(ctx, "warning", "what1 QueryIndexPredicate %ld\n", start_time);
 
     if (predicate->type == NCONTAINS || predicate->type == CONTAINS) {
         index_key = RedisModule_CreateStringPrintf(ctx, K_PREFIX,
                 RedisModule_StringPtrLen(predicate->label.key, &_s));
 
     } else {
+        //RedisModule_Log(ctx, "warning", "what2 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
         const char *key = RedisModule_StringPtrLen(predicate->label.key, &_s);
         const char *value = RedisModule_StringPtrLen(predicate->label.value, &_s);
         index_key = RedisModule_CreateStringPrintf(ctx, KV_PREFIX, key, value);
     }
+
+    //RedisModule_Log(ctx, "warning", "what3 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+
     int nokey;
     currentLeaf = RedisModule_DictGet(labelsIndex, index_key, &nokey);
+    //RedisModule_Log(ctx, "warning", "what4 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
     if (nokey) {
+        //RedisModule_Log(ctx, "warning", "what5 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+
         currentLeaf = NULL;
     } else {
-        RedisModuleDictIter *iter = RedisModule_DictIteratorStartC(currentLeaf, "^", NULL, 0);
-        RedisModuleString *currentKey;
-        while((currentKey = RedisModule_DictNext(ctx, iter, NULL)) != NULL) {
-            RedisModule_DictSet(localResult, currentKey, (void *)1);
+        //RedisModule_Log(ctx, "warning", "what6 QueryIndexPredicate %ld createResultDict %d\n", GetTimeStamp() - start_time, createResultDict);
+
+        if (createResultDict && prevResults == NULL)
+        {
+            //RedisModule_Log(ctx, "warning", "what6.5 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+            RedisModuleDictIter *iter = RedisModule_DictIteratorStartC(currentLeaf, "^", NULL, 0);
+            RedisModuleString *currentKey;
+            int count = 0;
+            while ((currentKey = RedisModule_DictNext(ctx, iter, NULL)) != NULL) {
+                count++;
+                RedisModule_DictSet(localResult, currentKey, (void *) 1);
+            }
+            //RedisModule_Log(ctx, "warning", "what6.5.1 QueryIndexPredicate %ld, count %d\n", GetTimeStamp() - start_time, count);
+            RedisModule_DictIteratorStop(iter);
+
         }
-        RedisModule_DictIteratorStop(iter);
+        else{
+            localResult = currentLeaf;
+        }
+        //RedisModule_Log(ctx, "warning", "what7 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+
+        //RedisModule_DictIteratorStop(iter);
     }
 
     if (prevResults != NULL) {
@@ -186,10 +217,16 @@ RedisModuleDict * QueryIndexPredicate(RedisModuleCtx *ctx, QueryPredicate *predi
         } else if (predicate->type == NEQ){
             while (_difference(ctx, prevResults, localResult, &lastKey) != 0) {}
         }
+        //RedisModule_Log(ctx, "warning", "what8 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+
         return prevResults;
     } else if (predicate->type == EQ) {
+        //RedisModule_Log(ctx, "warning", "what9 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+
         return localResult;
     } else {
+        //RedisModule_Log(ctx, "warning", "what10 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+
         return prevResults;
     }
 }
@@ -197,10 +234,15 @@ RedisModuleDict * QueryIndexPredicate(RedisModuleCtx *ctx, QueryPredicate *predi
 RedisModuleDict * QueryIndex(RedisModuleCtx *ctx, QueryPredicate *index_predicate, size_t predicate_count) {
     RedisModuleDict *result = NULL;
 
+    if (predicate_count > 1) {
+        QueryPredicate temp = index_predicate[predicate_count - 1];
+        index_predicate[predicate_count - 1] = index_predicate[0];
+        index_predicate[0] = temp;
+    }
     // EQ or Contains
     for (int i=0; i < predicate_count; i++) {
         if (index_predicate[i].type == EQ || index_predicate[i].type == CONTAINS) {
-            result = QueryIndexPredicate(ctx, &index_predicate[i], result);
+            result = QueryIndexPredicate(ctx, &index_predicate[i], result, (predicate_count > 1));
         }
     }
 
@@ -208,7 +250,7 @@ RedisModuleDict * QueryIndex(RedisModuleCtx *ctx, QueryPredicate *index_predicat
     // NCONTAINS or NEQ
     for (int i=0; i < predicate_count; i++) {
         if (index_predicate[i].type == NCONTAINS || index_predicate[i].type == NEQ) {
-            result = QueryIndexPredicate(ctx, &index_predicate[i], result);
+            result = QueryIndexPredicate(ctx, &index_predicate[i], result, (predicate_count > 1));
         }
     }
 

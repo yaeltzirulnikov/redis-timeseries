@@ -7,6 +7,7 @@
 #include <string.h>
 #include <limits.h>
 #include <ctype.h>
+#include <sys/time.h>
 
 #include "redismodule.h"
 #include "rmutil/util.h"
@@ -282,10 +283,24 @@ int TSDB_queryindex(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     return REDISMODULE_OK;
 }
 
+
 int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     RedisModule_AutoMemory(ctx);
     api_timestamp_t start_ts, end_ts;
     api_timestamp_t time_delta = 0;
+
+    size_t len;
+    char *arg;
+    int i;
+    time_t start_time = GetTimeStamp();
+    //RedisModule_Log(ctx, "warning", "bla1 starting time %ld\n", start_time);
+    /* for (i = 0; i < argc; i++)
+    {
+        arg = RedisModule_StringPtrLen(argv[i], &len);
+        RedisModule_Log(ctx, "warning", "dd %d %s", i, arg);
+    }
+     */
+
 
     if (argc < 4)
         return RedisModule_WrongArity(ctx);
@@ -295,6 +310,8 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         return REDISMODULE_ERR;
     }
 
+    //RedisModule_Log(ctx, "warning", "bla2 %ld\n", GetTimeStamp() - start_time);
+
     AggregationClass *aggObject = NULL;
 
     int aggregationResult = parseAggregationArgs(ctx, argv, argc, &time_delta, &aggObject);
@@ -302,30 +319,47 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         return REDISMODULE_ERR;
     }
 
+    //RedisModule_Log(ctx, "warning", "bla3 %ld\n", GetTimeStamp() - start_time);
+
     int filter_location = RMUtil_ArgIndex("FILTER", argv, argc);
     if (filter_location == -1) {
         return RedisModule_WrongArity(ctx);
     }
 
+    //RedisModule_Log(ctx, "warning", "bla4 %ld\n", GetTimeStamp() - start_time);
+
     size_t query_count = argc - 1 - filter_location;
     QueryPredicate *queries = RedisModule_PoolAlloc(ctx, sizeof(QueryPredicate) * query_count);
+
+    //RedisModule_Log(ctx, "warning", "bla5 %ld\n", GetTimeStamp() - start_time);
+
     if (parseLabelListFromArgs(ctx, argv, filter_location + 1, query_count, queries) == TSDB_ERROR) {
         return RedisModule_ReplyWithError(ctx, "TSDB: failed parsing labels");
     }
+
+    //RedisModule_Log(ctx, "warning", "bla6 %ld\n", GetTimeStamp() - start_time);
 
     if (CountPredicateType(queries, (size_t) query_count, EQ) == 0) {
         return RedisModule_ReplyWithError(ctx, "TSDB: please provide at least one matcher");
     }
 
+    //RedisModule_Log(ctx, "warning", "bla7 %ld\n", GetTimeStamp() - start_time);
+
     RedisModuleDict *result = QueryIndex(ctx, queries, query_count);
 
+    //RedisModule_Log(ctx, "warning", "bla8 %ld\n", GetTimeStamp() - start_time);
+
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
+
+    //RedisModule_Log(ctx, "warning", "bla9 %ld\n", GetTimeStamp() - start_time);
 
     RedisModuleDictIter *iter = RedisModule_DictIteratorStartC(result, "^", NULL, 0);
     char *currentKey;
     size_t currentKeyLen;
     long long replylen = 0;
     Series *series;
+    //RedisModule_Log(ctx, "warning", "bla10 %ld\n", GetTimeStamp() - start_time);
+
     while((currentKey = RedisModule_DictNextC(iter, &currentKeyLen, NULL)) != NULL) {
         RedisModuleKey *key = RedisModule_OpenKey(ctx, RedisModule_CreateString(ctx, currentKey, currentKeyLen),
                 REDISMODULE_READ);
@@ -340,6 +374,7 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         ReplySeriesRange(ctx, series, start_ts, end_ts, aggObject, time_delta);
         replylen++;
     }
+    //RedisModule_Log(ctx, "warning", "bla11 %ld\n", GetTimeStamp() - start_time);
     RedisModule_DictIteratorStop(iter);
     RedisModule_ReplySetArrayLength(ctx, replylen);
 

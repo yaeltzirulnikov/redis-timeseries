@@ -63,7 +63,6 @@ docker:
 
 package: redistimeseries.so
 	mkdir -p ../build
-	ramp pack -m "`pwd`/../ramp.yml" -v -o ${PAKCAGE_NAME} "`pwd`/redistimeseries.so" | tee /tmp/ramp_output
-	./clean_ramp.py `tail -1 /tmp/ramp_output`
+	ramp pack -m "`pwd`/../ramp.yml" -v -o "../build/redistimeseries.{os}-{architecture}.latest.zip" "`pwd`/redistimeseries.so"
 
 .PHONY: package tests unittests clean all
