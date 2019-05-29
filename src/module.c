@@ -310,7 +310,7 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         return REDISMODULE_ERR;
     }
 
-    //RedisModule_Log(ctx, "warning", "bla2 %ld\n", GetTimeStamp() - start_time);
+    RedisModule_Log(ctx, "warning", "bla2 %ld\n", GetTimeStamp() - start_time);
 
     AggregationClass *aggObject = NULL;
 
@@ -343,22 +343,22 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         return RedisModule_ReplyWithError(ctx, "TSDB: please provide at least one matcher");
     }
 
-    //RedisModule_Log(ctx, "warning", "bla7 %ld\n", GetTimeStamp() - start_time);
+    RedisModule_Log(ctx, "warning", "bla7 %ld\n", GetTimeStamp() - start_time);
 
     RedisModuleDict *result = QueryIndex(ctx, queries, query_count);
 
-    //RedisModule_Log(ctx, "warning", "bla8 %ld\n", GetTimeStamp() - start_time);
+    RedisModule_Log(ctx, "warning", "bla8 %ld\n", GetTimeStamp() - start_time);
 
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
 
-    //RedisModule_Log(ctx, "warning", "bla9 %ld\n", GetTimeStamp() - start_time);
+    RedisModule_Log(ctx, "warning", "bla9 %ld\n", GetTimeStamp() - start_time);
 
     RedisModuleDictIter *iter = RedisModule_DictIteratorStartC(result, "^", NULL, 0);
     char *currentKey;
     size_t currentKeyLen;
     long long replylen = 0;
     Series *series;
-    //RedisModule_Log(ctx, "warning", "bla10 %ld\n", GetTimeStamp() - start_time);
+    RedisModule_Log(ctx, "warning", "bla10 %ld\n", GetTimeStamp() - start_time);
 
     while((currentKey = RedisModule_DictNextC(iter, &currentKeyLen, NULL)) != NULL) {
         RedisModuleKey *key = RedisModule_OpenKey(ctx, RedisModule_CreateString(ctx, currentKey, currentKeyLen),
@@ -374,7 +374,7 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         ReplySeriesRange(ctx, series, start_ts, end_ts, aggObject, time_delta);
         replylen++;
     }
-    //RedisModule_Log(ctx, "warning", "bla11 %ld\n", GetTimeStamp() - start_time);
+    RedisModule_Log(ctx, "warning", "bla11 %ld\n", GetTimeStamp() - start_time);
     RedisModule_DictIteratorStop(iter);
     RedisModule_ReplySetArrayLength(ctx, replylen);
 

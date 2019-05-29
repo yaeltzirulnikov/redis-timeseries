@@ -161,34 +161,34 @@ RedisModuleDict * QueryIndexPredicate(RedisModuleCtx *ctx, QueryPredicate *predi
     size_t _s;
 
     time_t start_time = GetTimeStamp();
-    //RedisModule_Log(ctx, "warning", "what1 QueryIndexPredicate %ld\n", start_time);
+    RedisModule_Log(ctx, "warning", "what1 QueryIndexPredicate %ld\n", start_time);
 
     if (predicate->type == NCONTAINS || predicate->type == CONTAINS) {
         index_key = RedisModule_CreateStringPrintf(ctx, K_PREFIX,
                 RedisModule_StringPtrLen(predicate->label.key, &_s));
 
     } else {
-        //RedisModule_Log(ctx, "warning", "what2 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+        RedisModule_Log(ctx, "warning", "what2 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
         const char *key = RedisModule_StringPtrLen(predicate->label.key, &_s);
         const char *value = RedisModule_StringPtrLen(predicate->label.value, &_s);
         index_key = RedisModule_CreateStringPrintf(ctx, KV_PREFIX, key, value);
     }
 
-    //RedisModule_Log(ctx, "warning", "what3 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+    RedisModule_Log(ctx, "warning", "what3 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
 
     int nokey;
     currentLeaf = RedisModule_DictGet(labelsIndex, index_key, &nokey);
-    //RedisModule_Log(ctx, "warning", "what4 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+    RedisModule_Log(ctx, "warning", "what4 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
     if (nokey) {
-        //RedisModule_Log(ctx, "warning", "what5 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+        RedisModule_Log(ctx, "warning", "what5 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
 
         currentLeaf = NULL;
     } else {
-        //RedisModule_Log(ctx, "warning", "what6 QueryIndexPredicate %ld createResultDict %d\n", GetTimeStamp() - start_time, createResultDict);
+        RedisModule_Log(ctx, "warning", "what6 QueryIndexPredicate %ld createResultDict %d\n", GetTimeStamp() - start_time, createResultDict);
 
         if (createResultDict && prevResults == NULL)
         {
-            //RedisModule_Log(ctx, "warning", "what6.5 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+            RedisModule_Log(ctx, "warning", "what6.5 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
             RedisModuleDictIter *iter = RedisModule_DictIteratorStartC(currentLeaf, "^", NULL, 0);
             RedisModuleString *currentKey;
             int count = 0;
@@ -196,14 +196,14 @@ RedisModuleDict * QueryIndexPredicate(RedisModuleCtx *ctx, QueryPredicate *predi
                 count++;
                 RedisModule_DictSet(localResult, currentKey, (void *) 1);
             }
-            //RedisModule_Log(ctx, "warning", "what6.5.1 QueryIndexPredicate %ld, count %d\n", GetTimeStamp() - start_time, count);
+            RedisModule_Log(ctx, "warning", "what6.5.1 QueryIndexPredicate %ld, count %d\n", GetTimeStamp() - start_time, count);
             RedisModule_DictIteratorStop(iter);
 
         }
         else{
             localResult = currentLeaf;
         }
-        //RedisModule_Log(ctx, "warning", "what7 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+        RedisModule_Log(ctx, "warning", "what7 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
 
         //RedisModule_DictIteratorStop(iter);
     }
@@ -217,15 +217,15 @@ RedisModuleDict * QueryIndexPredicate(RedisModuleCtx *ctx, QueryPredicate *predi
         } else if (predicate->type == NEQ){
             while (_difference(ctx, prevResults, localResult, &lastKey) != 0) {}
         }
-        //RedisModule_Log(ctx, "warning", "what8 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+        RedisModule_Log(ctx, "warning", "what8 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
 
         return prevResults;
     } else if (predicate->type == EQ) {
-        //RedisModule_Log(ctx, "warning", "what9 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+        RedisModule_Log(ctx, "warning", "what9 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
 
         return localResult;
     } else {
-        //RedisModule_Log(ctx, "warning", "what10 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
+        RedisModule_Log(ctx, "warning", "what10 QueryIndexPredicate %ld\n", GetTimeStamp() - start_time);
 
         return prevResults;
     }
