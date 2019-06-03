@@ -33,7 +33,7 @@ uint64_t GetTimeStamp();
 void IndexInit();
 void IndexMetric(RedisModuleCtx *ctx, RedisModuleString *ts_key, Label *labels, size_t labels_count);
 void RemoveIndexedMetric(RedisModuleCtx *ctx, RedisModuleString *ts_key, Label *labels, size_t labels_count);
-RedisModuleDict *QueryIndex(RedisModuleCtx *ctx, QueryPredicate *index_predicate, size_t predicate_count);
+RedisModuleString **QueryIndex(RedisModuleCtx *ctx, QueryPredicate *index_predicate, size_t predicate_count, int*len);
 int parseLabel(RedisModuleCtx *ctx, RedisModuleString *label, Label *retLabel, const char *separator);
 int CountPredicateType(QueryPredicate *queries, size_t query_count, PredicateType type);
 #endif

@@ -264,8 +264,9 @@ int TSDB_queryindex(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (CountPredicateType(queries, (size_t) query_count, EQ) == 0) {
         return RedisModule_ReplyWithError(ctx, "TSDB: please provide at least one matcher");
     }
-
-    RedisModuleDict *result = QueryIndex(ctx, queries, query_count);
+    /*
+    int length;
+    RedisModuleDict *result = QueryIndex(ctx, queries, query_count, &length);
 
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
 
@@ -279,7 +280,7 @@ int TSDB_queryindex(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     }
     RedisModule_DictIteratorStop(iter);
     RedisModule_ReplySetArrayLength(ctx, replylen);
-
+*/
     return REDISMODULE_OK;
 }
 
@@ -293,12 +294,12 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     char *arg;
     int i;
     time_t start_time = GetTimeStamp();
-    RedisModule_Log(ctx, "warning", "bla1 starting time %ld\n", start_time);
-    for (i = 0; i < argc; i++)
+    //RedisModule_Log(ctx, "warning", "bla1 starting time %ld\n", start_time);
+    /*for (i = 0; i < argc; i++)
     {
         arg = RedisModule_StringPtrLen(argv[i], &len);
         RedisModule_Log(ctx, "warning", "dd %d %s", i, arg);
-    }
+    }*/
 
 
     if (argc < 4)
@@ -309,7 +310,7 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         return REDISMODULE_ERR;
     }
 
-    RedisModule_Log(ctx, "warning", "bla2 %ld\n", GetTimeStamp() - start_time);
+    //RedisModule_Log(ctx, "warning", "bla2 %ld\n", GetTimeStamp() - start_time);
 
     AggregationClass *aggObject = NULL;
 
@@ -342,16 +343,35 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         return RedisModule_ReplyWithError(ctx, "TSDB: please provide at least one matcher");
     }
 
-    RedisModule_Log(ctx, "warning", "bla7 %ld\n", GetTimeStamp() - start_time);
+    //RedisModule_Log(ctx, "warning", "bla7 %ld\n", GetTimeStamp() - start_time);
 
-    RedisModuleDict *result = QueryIndex(ctx, queries, query_count);
+    int length = 0;
+    RedisModuleString**result = QueryIndex(ctx, queries, query_count, &length);
 
-    RedisModule_Log(ctx, "warning", "bla8 %ld\n", GetTimeStamp() - start_time);
+    //RedisModule_Log(ctx, "warning", "bla8 %ld\n", GetTimeStamp() - start_time);
 
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
 
-    RedisModule_Log(ctx, "warning", "bla9 %ld\n", GetTimeStamp() - start_time);
+    //RedisModule_Log(ctx, "warning", "bla9 %ld\n", GetTimeStamp() - start_time);
+    long long replylen = 0;
+    Series *series;
+    for (int i=0; i<length; i++){
+        RedisModuleKey *key = RedisModule_OpenKey(ctx, result[i],
+                                                  REDISMODULE_READ);
+        if (key == NULL || RedisModule_ModuleTypeGetType(key) != SeriesType){
+            RedisModule_Log(ctx, "warning", "couldn't open key or key is not a Timeseries. key");
+            continue;
+        }
+        series = RedisModule_ModuleTypeGetValue(key);
 
+        RedisModule_ReplyWithArray(ctx, 3);
+        RedisModule_ReplyWithString(ctx, result[i]);
+        ReplyWithSeriesLabels(ctx, series);
+        ReplySeriesRange(ctx, series, start_ts, end_ts, aggObject, time_delta);
+        replylen++;
+        RedisModule_CloseKey(key);
+    }
+    /*
     RedisModuleDictIter *iter = RedisModule_DictIteratorStartC(result, "^", NULL, 0);
     char *currentKey;
     size_t currentKeyLen;
@@ -375,6 +395,7 @@ int TSDB_mrange(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     }
     RedisModule_Log(ctx, "warning", "bla11 %ld\n", GetTimeStamp() - start_time);
     RedisModule_DictIteratorStop(iter);
+     */
     RedisModule_ReplySetArrayLength(ctx, replylen);
 
     return REDISMODULE_OK;
@@ -846,7 +867,28 @@ int TSDB_mget(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
     if (CountPredicateType(queries, (size_t) query_count, EQ) == 0) {
         return RedisModule_ReplyWithError(ctx, "TSDB: please provide at least one matcher");
     }
+    int length = 0;
+    long long replylen = 0;
+    Series *series;
+    RedisModuleString** result = QueryIndex(ctx, queries, query_count, &length);
+    for (int i=0; i<length; i++){
+        RedisModuleKey *key = RedisModule_OpenKey(ctx, result[i],
+                                                  REDISMODULE_READ);
+        if (key == NULL || RedisModule_ModuleTypeGetType(key) != SeriesType){
+            RedisModule_Log(ctx, "warning", "couldn't open key or key is not a Timeseries. key");
+            continue;
+        }
+        series = RedisModule_ModuleTypeGetValue(key);
 
+        RedisModule_ReplyWithArray(ctx, 4);
+        RedisModule_ReplyWithString(ctx, result[i]);
+        ReplyWithSeriesLabels(ctx, series);
+        RedisModule_ReplyWithLongLong(ctx, series->lastTimestamp);
+        RedisModule_ReplyWithDouble(ctx, series->lastValue);
+        replylen++;
+        RedisModule_CloseKey(key);
+    }
+    /*
     RedisModuleDict *result = QueryIndex(ctx, queries, query_count);
     RedisModule_ReplyWithArray(ctx, REDISMODULE_POSTPONED_ARRAY_LEN);
     RedisModuleDictIter *iter = RedisModule_DictIteratorStartC(result, "^", NULL, 0);
@@ -872,6 +914,7 @@ int TSDB_mget(RedisModuleCtx *ctx, RedisModuleString **argv, int argc) {
         RedisModule_CloseKey(key);
     }
     RedisModule_DictIteratorStop(iter);
+     */
     RedisModule_ReplySetArrayLength(ctx, replylen);
 
     return REDISMODULE_OK;
